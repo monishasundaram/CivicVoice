@@ -1,8 +1,8 @@
 node_modules/
 .env
 .env.local
-civicvoice-web/
 *.db
 *.db-shm
 *.db-wal
 uploads/
+.next/
