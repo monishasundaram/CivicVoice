@@ -29,7 +29,7 @@ router.post('/', auth, upload.single('evidence'), async (req, res) => {
 
   const existing = await q('SELECT complaint_number,title,description,category,location FROM complaints');
   const dup = findDuplicate({ title, description, category: finalCategory, location }, existing);
-  if (dup) return res.status(409).json({ error: `Possible duplicate of complaint ${dup.number}. This issue looks already reported.`, gate: 'duplicate', duplicate: dup.number });
+  if (dup) return res.status(409).json({ error: `Possible duplicate of complaint ${dup.number}.`, gate: 'duplicate', duplicate: dup.number });
 
   let evidenceUrl;
   try { evidenceUrl = await uploadFile(buffer, Date.now() + '-' + req.file.originalname.replace(/\s+/g, '_'), req.file.mimetype); }
@@ -43,20 +43,21 @@ router.post('/', auth, upload.single('evidence'), async (req, res) => {
   const hash = sha256(number + '|' + title + '|' + created);
   const score = aiScore(t.ok, img, content);
   const department = DEPT[finalCategory] || 'General Administration';
+  const priority = ['High', 'Medium', 'Low'].includes(content.priority) ? content.priority : 'Medium';
 
   const c = await one(`INSERT INTO complaints
-    (complaint_number,pseudo_citizen_id,title,description,category,location,status,ai_score,blockchain_hash,department,lat,lng,created_at)
-    VALUES ($1,$2,$3,$4,$5,$6,'Filed',$7,$8,$9,$10,$11,$12) RETURNING id`,
-    [number, req.user.pseudo_id, title, description, finalCategory, location, score, hash, department, lat, lng, created]);
+    (complaint_number,pseudo_citizen_id,title,description,category,location,status,ai_score,blockchain_hash,department,lat,lng,priority,hashed_at,created_at)
+    VALUES ($1,$2,$3,$4,$5,$6,'Filed',$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+    [number, req.user.pseudo_id, title, description, finalCategory, location, score, hash, department, lat, lng, priority, created, created]);
   await pool.query('INSERT INTO evidence (complaint_id,file_path,file_type,gps_verified,ai_authentic) VALUES ($1,$2,$3,$4,$5)',
     [c.id, evidenceUrl, req.file.mimetype, gpsVerified, 1]);
 
-  res.json({ message: 'Complaint filed.', complaint_number: number, blockchain_hash: hash, ai_score: score, category: finalCategory, department });
+  res.json({ message: 'Complaint filed.', complaint_number: number, blockchain_hash: hash, ai_score: score, category: finalCategory, department, priority });
 });
 
 router.get('/', async (req, res) => {
   const { q: search, status } = req.query;
-  let sql = 'SELECT id,complaint_number,pseudo_citizen_id,title,category,location,status,lat,lng,created_at FROM complaints WHERE 1=1';
+  let sql = 'SELECT id,complaint_number,pseudo_citizen_id,title,category,location,status,ai_score,priority,lat,lng,created_at FROM complaints WHERE 1=1';
   const args = []; let n = 1;
   if (status) { sql += ` AND status=$${n++}`; args.push(status); }
   if (search) { sql += ` AND (title ILIKE $${n} OR location ILIKE $${n})`; args.push('%' + search + '%'); n++; }
@@ -67,6 +68,15 @@ router.get('/', async (req, res) => {
     total: await cnt(''), under_review: await cnt("WHERE status='Under Review'"),
     in_progress: await cnt("WHERE status='In Progress'"), resolved: await cnt("WHERE status='Resolved'"),
   } });
+});
+
+// Verify a complaint's integrity by recomputing its hash
+router.get('/:number/verify', async (req, res) => {
+  const c = await one('SELECT complaint_number,title,blockchain_hash,hashed_at,created_at FROM complaints WHERE complaint_number=$1', [req.params.number]);
+  if (!c) return res.status(404).json({ error: 'Not found.' });
+  const basis = c.hashed_at || (c.created_at ? new Date(c.created_at).toISOString() : '');
+  const recomputed = sha256(c.complaint_number + '|' + c.title + '|' + basis);
+  res.json({ valid: recomputed === c.blockchain_hash, recomputed, stored: c.blockchain_hash });
 });
 
 router.get('/:number', async (req, res) => {

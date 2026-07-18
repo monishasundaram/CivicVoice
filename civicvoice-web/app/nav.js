@@ -18,7 +18,7 @@ export default function Nav() {
         <Link href="/complaints" style={link}>{t('viewComplaints')}</Link>
         <Link href="/profile" style={link}>{t('profile')}</Link>
         <Link href="/admin" style={link}>{t('admin')}</Link>
-        <Link href="/map" style={link}>Map</Link>
+        <Link href="/map" style={link}>{t('map')}</Link>
         <Link href="/officer" style={link}>{t('officer')}</Link>
         <select value={lang} onChange={e => setLang(e.target.value)} style={{ background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, padding: '6px 8px', fontSize: 13 }}>
           <option value="en">English</option>

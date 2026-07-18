@@ -30,6 +30,9 @@ async function init() {
       action_type TEXT, description TEXT, photo_path TEXT, digital_signature TEXT,
       created_at TIMESTAMPTZ DEFAULT now());
   `);
+  await pool.query("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS priority TEXT");
+  await pool.query("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS hashed_at TEXT");
+
   const OFFICERS = [
     ['OFF-PWD-01', 'officer1', 'K. Kumar', 'Public Works Department'],
     ['OFF-WTR-01', 'officer2', 'P. Priya', 'Water Board'],

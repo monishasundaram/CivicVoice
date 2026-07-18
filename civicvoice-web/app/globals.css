@@ -1,3 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-body { background: #080c16; color: #e2e8f0; }
+* { box-sizing: border-box; }
+
+body {
+  background: #080c16;
+  color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+a, button { transition: all 0.16s ease; }
+button { cursor: pointer; }
+button:hover { filter: brightness(1.08); }
+
+/* subtle card lift on hover */
+.lift { transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
+.lift:hover { transform: translateY(-4px); border-color: #2563eb !important; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+
+::selection { background: #2563eb; color: #fff; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+@media (max-width: 700px) {
+  nav { flex-wrap: wrap !important; row-gap: 10px; padding: 12px 16px !important; }
+  nav a, nav select { font-size: 13px; }
+}

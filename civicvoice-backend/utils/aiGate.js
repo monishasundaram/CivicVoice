@@ -33,10 +33,10 @@ function checkImage(buffer, mimetype) {
   return { ok: true, authentic: hasExif };
 }
 
-// REAL AI: is this image genuine evidence of the reported grievance?
+// REAL AI: is this image genuine evidence of the reported grievance? + priority
 async function checkImageContent(buffer, mimetype, category, title) {
-  if (!genAI) { console.log('[AI vision] SKIPPED — no GEMINI_API_KEY'); return { ok: true, skipped: true, category }; }
-  if (mimetype === 'video/mp4') return { ok: true, category };
+  if (!genAI) { console.log('[AI vision] SKIPPED — no GEMINI_API_KEY'); return { ok: true, skipped: true, category, priority: 'Medium' }; }
+  if (mimetype === 'video/mp4') return { ok: true, category, priority: 'Medium' };
   const MODEL = 'gemini-flash-latest';
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
@@ -46,7 +46,9 @@ User-picked category: "${category}". Title: "${title}".
 water leakage/scarcity, damaged electric lines/poles, garbage/blocked drains, etc.). REJECT screenshots,
 app/desktop windows, selfies, memes, food, celebrities, documents, or anything not showing a public problem.
 2) Classify the true problem into exactly one of: Roads, Water, Electricity, Sanitation, Corruption, Other.
-Respond ONLY with strict JSON: {"relevant": true|false, "reason": "short reason", "category": "one of the list"}`;
+3) Rate priority as "High", "Medium", or "Low" based on public safety / urgency
+   (e.g. exposed live wire, major road hazard, sewage overflow = High).
+Respond ONLY with strict JSON: {"relevant": true|false, "reason": "short reason", "category": "one of the list", "priority": "High|Medium|Low"}`;
     const result = await model.generateContent([
       { text: prompt },
       { inlineData: { mimeType: mimetype, data: buffer.toString('base64') } },
@@ -54,12 +56,18 @@ Respond ONLY with strict JSON: {"relevant": true|false, "reason": "short reason"
     const txt = result.response.text().trim().replace(/```json|```/g, '');
     const parsed = JSON.parse(txt);
     console.log('[AI vision]', category, '->', JSON.stringify(parsed));
-    return { ok: parsed.relevant === true, reason: parsed.reason || 'Image not relevant to the complaint.', category: parsed.category || category };
+    return {
+      ok: parsed.relevant === true,
+      reason: parsed.reason || 'Image not relevant to the complaint.',
+      category: parsed.category || category,
+      priority: parsed.priority || 'Medium',
+    };
   } catch (e) {
     console.error('[AI vision] ERROR (' + MODEL + '):', e.message);
-    return { ok: false, reason: 'AI could not verify this image. Please upload a clear real photo of the problem.', category };
+    return { ok: false, reason: 'AI could not verify this image. Please upload a clear real photo of the problem.', category, priority: 'Medium' };
   }
 }
+
 function aiScore(textOk, image, content) {
   let s = 0.4;
   if (textOk) s += 0.2;
