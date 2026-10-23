@@ -23,7 +23,6 @@
 - [Problem Statement](#-problem-statement)
 - [Solution](#-solution)
 - [Architecture](#%EF%B8%8F-architecture)
-- [Screenshots](#-screenshots)
 - [Tech Stack](#-tech-stack)
 - [Features](#-features)
 - [How to Run](#%EF%B8%8F-how-to-run)
